@@ -1,0 +1,45 @@
+fun make() {
+    return {x: 180, y: 550, vx: 0, vy: 0, mouse_x: -1, mouse_y: -1}
+}
+
+fun reset(player, settings) {
+    player.x = settings.WIDTH / 2
+    player.y = 550
+    player.vx = 0
+    player.vy = 0
+    player.mouse_x = -1
+    player.mouse_y = -1
+}
+
+fun update(player, canvas, dt, draw, settings) {
+    let mouse = draw.mouse(canvas)
+    let mouse_moved = mouse.x != player.mouse_x || mouse.y != player.mouse_y
+    player.mouse_x = mouse.x
+    player.mouse_y = mouse.y
+
+    if mouse_moved {
+        player.x = mouse.x
+        player.y = mouse.y
+        player.vx = 0
+        player.vy = 0
+    } else {
+        let ax = 0
+        let ay = 0
+        if draw.key(canvas, draw.KEY_LEFT) || draw.key(canvas, draw.KEY_A) ax -= settings.ACCELERATION
+        if draw.key(canvas, draw.KEY_RIGHT) || draw.key(canvas, draw.KEY_D) ax += settings.ACCELERATION
+        if draw.key(canvas, draw.KEY_UP) || draw.key(canvas, draw.KEY_W) ay -= settings.ACCELERATION
+        if draw.key(canvas, draw.KEY_DOWN) || draw.key(canvas, draw.KEY_S) ay += settings.ACCELERATION
+
+        player.vx += ax * dt
+        player.vy += ay * dt
+        player.vx -= player.vx * settings.FRICTION * dt
+        player.vy -= player.vy * settings.FRICTION * dt
+        player.x += player.vx * dt
+        player.y += player.vy * dt
+    }
+
+    if player.x < settings.PLAYER_SIZE / 2 player.x = settings.PLAYER_SIZE / 2
+    if player.x > settings.WIDTH - settings.PLAYER_SIZE / 2 player.x = settings.WIDTH - settings.PLAYER_SIZE / 2
+    if player.y < 200 player.y = 200
+    if player.y > settings.HEIGHT - settings.PLAYER_SIZE / 2 player.y = settings.HEIGHT - settings.PLAYER_SIZE / 2
+}

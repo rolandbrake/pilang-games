@@ -1,0 +1,211 @@
+// Flappy Bird. Run this file from its folder.
+
+import draw
+import audio
+import math
+import time.{clock}
+
+WIDTH = 288
+HEIGHT = 512
+SCALE = 1.25
+GROUND_Y = 400
+BIRD_X = 55
+BIRD_W = 34
+BIRD_H = 24
+PIPE_W = 52
+PIPE_H = 320
+PIPE_GAP = 110
+PIPE_SPEED = 115
+
+ctx = draw.canvas(WIDTH * SCALE, HEIGHT * SCALE, "PiLang Flappy Bird","./favicon.ico")
+draw.cursor(ctx, false)
+
+ASSET = "sprites/"
+
+night = rand(0, 2) == 0
+
+background = ASSET + (night ? "background-night.png" : "background-day.png")
+base = ASSET + "base.png"
+pipe_image  =  ASSET + (night ? "pipe-red.png" : "pipe-green.png") 
+bird_type = ["yellow", "red", "blue"][rand(0, 2)]
+bird_frames = [ASSET + bird_type + "bird-upflap.png",
+               ASSET + bird_type + "bird-midflap.png",
+               ASSET + bird_type + "bird-downflap.png"]
+
+wing  = audio.load("audio/wing.wav")
+point = audio.load("audio/point.wav")
+hit   = audio.load("audio/hit.wav")
+die   = audio.load("audio/die.wav")
+
+SOUND_VOLUME = .35
+audio.volume(wing, SOUND_VOLUME)
+audio.volume(point, SOUND_VOLUME)
+audio.volume(hit, SOUND_VOLUME)
+audio.volume(die, SOUND_VOLUME)
+
+bird_y = 220
+bird_velocity = 0
+base_x = 0
+score = 0
+state = "ready"
+pipes = []
+last_frame = clock()
+flap_was_down = false
+
+fun reset_game() {
+    bird_y = 220
+    bird_velocity = 0
+    base_x = 0
+    score = 0
+    state = "ready"
+    pipes = [
+        {x: 310, gap_y: 155, scored: false},
+        {x: 470, gap_y: 235, scored: false},
+        {x: 630, gap_y: 115, scored: false}
+    ]
+}
+
+fun flap() {
+    bird_velocity = -285
+    audio.play(wing)
+}
+
+fun overlaps_pipe(pipe) {
+    if BIRD_X + BIRD_W - 6 <= pipe.x + 4 || BIRD_X + 6 >= pipe.x + PIPE_W - 4 
+        return false
+    return bird_y + 5 < pipe.gap_y || bird_y + BIRD_H - 5 > pipe.gap_y + PIPE_GAP
+}
+
+fun end_game() {
+    if state == "playing" {
+        state = "dying"
+        audio.play(hit)
+    }
+}
+
+fun update(canvas, dt) {
+    let mouse = draw.mouse(canvas)
+    let flap_down = draw.key(canvas, draw.KEY_SPACE) ||
+                    draw.key(canvas, draw.KEY_UP) ||
+                    mouse.left
+    let flap_pressed = flap_down && !flap_was_down
+    flap_was_down = flap_down
+
+    if flap_pressed {
+        if state == "game_over" 
+            reset_game()
+        elif state == "ready" {
+            state = "playing"
+            flap()
+        } elif state == "playing" 
+            flap()        
+    }
+
+    if state == "ready" || state == "game_over" return
+
+    bird_velocity += 780 * dt
+    bird_y += bird_velocity * dt
+
+    if state == "playing" {
+        let speed = PIPE_SPEED + score 
+        base_x -= speed * dt
+
+        if base_x <= -48 base_x += 48
+
+        for pipe in pipes {
+            pipe.x -= speed * dt
+
+            if !pipe.scored && pipe.x + PIPE_W < BIRD_X {
+                pipe.scored = true
+                score += 1
+                audio.play(point)
+            }
+
+            if pipe.x < -PIPE_W {
+                pipe.x += 480
+                pipe.gap_y = rand(85, 245)
+                pipe.scored = false
+            }
+
+            if overlaps_pipe(pipe) end_game()
+        }
+    }
+
+    if bird_y < 0 {
+        bird_y = 0
+        bird_velocity = 0
+    }
+
+    if bird_y + BIRD_H >= GROUND_Y {
+        bird_y = GROUND_Y - BIRD_H
+        if state == "dying" {
+            state = "game_over"
+            audio.play(die)
+        } elif state == "playing" {
+            state = "game_over"
+            audio.play(hit)
+            audio.play(die)
+        }
+    }
+}
+
+fun draw_score(canvas) {
+    let text = "" + score
+    let x = WIDTH / 2 - len(text) * 12
+
+    for digit in text {
+        sprite(canvas, ASSET + digit + ".png", x, 42, 24, 36)
+        x += 24
+    }
+}
+
+fun sprite(canvas, path, x, y, width, height) {
+    draw.image(canvas, path, x * SCALE, y * SCALE,
+               {w: width * SCALE, h: height * SCALE})
+}
+
+fun sprite_upsideDown(canvas, path, x, y, width, height) {
+    draw.image(canvas, path, x * SCALE, y * SCALE,
+               {w: width * SCALE, h: height * SCALE, flip_y: true})
+}
+
+fun draw_bird(canvas) {
+    let angle = bird_velocity / 350 * 35
+    if angle < -35 angle = -35
+    if angle > 35 angle = 35
+    draw.image(canvas, bird_frames[(math.floor(clock() * 12)) % 3],
+               BIRD_X * SCALE, bird_y * SCALE,
+               {w: BIRD_W * SCALE, h: BIRD_H * SCALE, angle: angle})
+}
+
+fun render(canvas) {
+    let now = clock()
+    let dt = now - last_frame
+    last_frame = now
+
+    if dt > .05 dt = .05
+
+    update(canvas, dt)
+    sprite(canvas, background, 0, 0, WIDTH, HEIGHT)
+
+    for pipe in pipes {
+        sprite_upsideDown(canvas, pipe_image, pipe.x, pipe.gap_y - PIPE_H, PIPE_W, PIPE_H)
+        sprite(canvas, pipe_image, pipe.x, pipe.gap_y + PIPE_GAP, PIPE_W, PIPE_H)
+    }
+
+    sprite(canvas, base, base_x, GROUND_Y, 336, 112)
+    sprite(canvas, base, base_x + 336, GROUND_Y, 336, 112)
+    draw_bird(canvas)
+
+    draw_score(canvas)
+
+    if state == "ready" 
+        sprite(canvas, ASSET + "message.png", 52, 110, 184, 267)
+    elif state == "game_over" {
+        sprite(canvas, ASSET + "gameover.png", 48, 200, 192, 42)
+    }
+}
+
+reset_game()
+draw.animate(ctx, render)
+draw.run(ctx)

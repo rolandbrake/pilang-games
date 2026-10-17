@@ -1,0 +1,65 @@
+import image
+import math.{sin, floor}
+import time.{clock}
+
+gift_image = nil
+left_hand_image = nil
+right_hand_image = nil
+
+_backgrounds = ["red_bg.png", "green_bg.png", "blue_bg.png"]
+
+fun load(asset_dir) {
+    gift_image = image.load(asset_dir + "gift.png")
+    left_hand_image = image.load(asset_dir + "left_hand.png")
+    right_hand_image = image.load(asset_dir + "right_hand.png")
+}
+
+fun hand_hits_player(hand_sprite, player_sprite) {
+    let hand_image = hand_sprite.side == "left" ? left_hand_image : right_hand_image
+    return image.overlaps(
+        gift_image, player_sprite.x - 42, player_sprite.y - 44,
+        hand_image, hand_sprite.x - 160, hand_sprite.y - 52
+    )
+}
+
+fun background(canvas, draw, game, settings) {
+    let background_index = floor(game.score / 10) % #_backgrounds
+    draw.image(canvas, settings.ASSET_DIR + _backgrounds[background_index], 0, game.scroll)
+}
+
+fun player(canvas, draw, sprite, settings) {
+    // Player coordinates are the centre of the 85x89 gift, as in Pygame.
+    draw.image(canvas, settings.ASSET_DIR + "santa_hand.png", sprite.x - 67, sprite.y - 69)
+    draw.image(canvas, settings.ASSET_DIR + "gift.png", sprite.x - 42, sprite.y - 44)
+}
+
+fun hand(canvas, draw, sprite, settings) {
+    let image_name = sprite.side == "left" ? "left_hand.png" : "right_hand.png"
+    // Hands are 320x105 and use their centre as the game position.
+    draw.image(canvas, settings.ASSET_DIR + "dotted_line.png", 0, sprite.y + 1)
+    draw.image(canvas, settings.ASSET_DIR + image_name, sprite.x - 160, sprite.y - 52)
+}
+
+fun scoreboard(canvas, draw, game, settings) {
+    const digits = #str(game.score)
+    const x = 168 - (digits - 1) * 10
+    const y_offset = sin(clock() * 3) * 4
+
+    draw.image(canvas, settings.ASSET_DIR + "scoreboard.png", 113, 40 + y_offset)    
+
+    draw.text(canvas, x, 55 + y_offset, game.score, {
+        color: 0x000000,
+        size: 30,
+        bold: true
+    });
+}
+
+fun menu(canvas, draw, game, settings) {
+    const title_y = 100 + sin(clock() * 2) * 8
+    background(canvas, draw, game, settings)
+    draw.image(canvas, settings.MENU_DIR + "title.png", 0, title_y)
+    draw.image(canvas, settings.MENU_DIR + "holding_gift.png", 0, 320)
+    draw.text(canvas, 90, 220, "High Score: " + game.best_score, {color: 0x000000, size: 25, bold: true})
+    draw.image(canvas, settings.MENU_DIR + "press_any_key.png", 0, game.press_y)
+    draw.text(canvas, 98, 590, "WASD / Arrow keys move", {color: 0x000000, size: 15})
+}

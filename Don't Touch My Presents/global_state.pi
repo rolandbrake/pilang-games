@@ -1,0 +1,17 @@
+import config
+
+game = {
+    phase: "menu",
+    score: 0,
+    best_score: 0,
+    scroll: 0,
+    press_y: 520,
+    last_frame: 0,
+    restart_was_down: false,
+    has_started: false
+}
+
+fun reset_round() {
+    game.score =  0
+    game.scroll = 0
+}

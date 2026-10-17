@@ -1,0 +1,18 @@
+import fs
+
+FPS = 60
+WIDTH = 360
+HEIGHT = 640
+// Equivalent to the original 1.2 px/frame acceleration and -0.1 friction.
+ACCELERATION = 4500
+FRICTION = 6.3
+PLAYER_SIZE = 42
+// Leaves about 155px between the 105px-tall hand sprites.
+HAND_GAP = 260
+SPEED_PER_SCORE = .03
+MAX_SPEED_BONUS = .45
+// Support launching from either the repository root or this game's folder.
+DATA_DIR  = fs.exists("data/assets/gift.png") ? "data/" : "dont-touch-my-presents/data/"
+ASSET_DIR = fs.abspath(DATA_DIR + "assets/") + "/"
+MENU_DIR  = fs.abspath(DATA_DIR + "menu/")   + "/"
+AUDIO_DIR = fs.abspath(DATA_DIR + "audio/")  + "/"

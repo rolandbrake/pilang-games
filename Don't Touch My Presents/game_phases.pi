@@ -1,0 +1,106 @@
+import config
+import global_state:state
+import components.player
+import components.hand
+import components.scoreboard
+import services.visualization
+import services.music
+
+
+fun begin(player_sprite, left_hand, right_hand) {
+    state.reset_round()
+    player.reset(player_sprite, config)
+
+    if state.game.has_started {
+        hand.reset(left_hand)
+        hand.reset(right_hand)
+    } else 
+        state.game.has_started = true
+    
+    state.game.phase = "playing"
+}
+
+
+fun update_menu(canvas, draw, dt, player_sprite, left_hand, right_hand) {
+    state.game.scroll -= 30 * dt
+
+    if state.game.scroll < -80 
+        state.game.scroll = 0
+    
+    if state.game.press_y > 460 
+        state.game.press_y -= 45 * dt
+    
+    if (
+        draw.mouse(canvas).left ||
+        draw.key(canvas, draw.KEY_SPACE) ||
+        draw.key(canvas, draw.KEY_LEFT) ||
+        draw.key(canvas, draw.KEY_RIGHT) ||
+        draw.key(canvas, draw.KEY_A) ||
+        draw.key(canvas, draw.KEY_D)
+    )
+        begin(player_sprite, left_hand, right_hand)
+    
+}
+
+
+fun update_gameplay(canvas, draw, dt, player_sprite, left_hand, right_hand) {
+    player.update(player_sprite, canvas, dt, draw, config)
+
+    let left_event = hand.update(left_hand, player_sprite, state.game, dt, config)
+
+    let right_event = hand.update(right_hand, player_sprite, state.game, dt, config)
+
+    hand.keep_apart(left_hand, right_hand, config.HAND_GAP)
+
+    if left_event == 1 || right_event == 1 {
+        music.play_score()
+
+        if state.game.score % 5 == 0 
+            music.play_cheer()
+    }
+
+    if left_event == 2 || right_event == 2 
+        music.play_chop()
+    
+
+    state.game.scroll -= 30 * dt
+
+    if state.game.scroll < -80 
+        state.game.scroll = 0
+    
+    if (
+        visualization.hand_hits_player(left_hand, player_sprite) ||
+        visualization.hand_hits_player(right_hand, player_sprite)
+    ) {
+        scoreboard.record_best(state.game)
+        music.play_slap()
+
+        // Add a 0.5s delay before returning to the menu 
+        sleep(500)
+
+        state.game.phase = "menu"
+        state.game.press_y = 520
+    }
+}
+
+
+fun update(canvas, draw, dt, player_sprite, left_hand, right_hand) {
+    if state.game.phase == "menu" 
+        update_menu(canvas, draw, dt, player_sprite, left_hand, right_hand)
+    else 
+        update_gameplay(canvas, draw, dt, player_sprite, left_hand, right_hand)
+    
+}
+
+
+fun render(canvas, draw, player_sprite, left_hand, right_hand) {
+    if state.game.phase == "menu" 
+        visualization.menu(canvas, draw, state.game, config)
+    else {
+        visualization.background(canvas, draw, state.game, config)
+        visualization.player(canvas, draw, player_sprite, config)
+        visualization.hand(canvas, draw, left_hand, config)
+        visualization.hand(canvas, draw, right_hand, config)
+        visualization.scoreboard(canvas, draw, state.game, config)
+    }
+}

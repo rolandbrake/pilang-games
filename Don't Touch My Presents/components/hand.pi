@@ -1,0 +1,62 @@
+import math.{sin}
+import time.{clock}
+
+fun make(side) {
+    let hand = {side: side, x: 0, y: 0, speed: 0, offset: 0, scored: false}
+    reset(hand)
+    // The original game starts with gentle hands, then randomizes on resets.
+    hand.speed = 150 + rand() * 30
+    return hand
+}
+
+fun reset(hand) {
+    let is_left = hand.side == "left"
+    hand.y = is_left ? -320 : -40
+    hand.speed = 110 + rand() * 370
+    hand.offset = is_left ? rand(-50, 120) : rand(260, 380)
+    hand.x = x_at(hand)
+    hand.scored = false
+}
+
+fun x_at(hand) {
+    // Match pygame's sine(100, 620, 20, offset): ticks / 2 is ms * .5.
+    let wave_time = (clock() * 500) % 620
+    return sin(wave_time / 100) * 20 + hand.offset
+}
+
+fun update(hand, player, game, dt, settings) {
+    let event = 0
+    let speed_bonus = min(game.score * settings.SPEED_PER_SCORE, settings.MAX_SPEED_BONUS)
+    hand.y += hand.speed * (1 + speed_bonus) * dt
+    hand.x = x_at(hand)
+    if !hand.scored && hand.y - 28 > player.y - 35 {
+        game.score += 1
+        hand.scored = true
+        event = 1
+    }
+    if hand.y - 28 > settings.HEIGHT {
+        reset(hand)
+        if hand.speed >= 360 event = 2
+    }
+    return event
+}
+
+fun keep_apart(first, second, minimum_gap) {
+    if abs(first.y - second.y) >= minimum_gap return
+
+    // Hold the upper hand back so the player always gets one dodge at a time.
+    if first.y <= second.y {
+        first.y = second.y - minimum_gap
+        first.x = x_at(first)
+    } else {
+        second.y = first.y - minimum_gap
+        second.x = x_at(second)
+    }
+}
+
+fun hits_player(hand, player, settings) {
+    return player.x + settings.PLAYER_SIZE / 2 > hand.x - 42 &&
+           player.x - settings.PLAYER_SIZE / 2 < hand.x + 42 &&
+           player.y + settings.PLAYER_SIZE / 2 > hand.y - 28 &&
+           player.y - settings.PLAYER_SIZE / 2 < hand.y + 42
+}

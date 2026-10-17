@@ -1,0 +1,4 @@
+fun record_best(game) {
+    if game.score > game.best_score 
+        game.best_score = game.score
+}

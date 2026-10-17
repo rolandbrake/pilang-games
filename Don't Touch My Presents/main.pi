@@ -1,0 +1,41 @@
+// PiLang port of "Don't Touch My Presents".
+// Space/Arrow/WASD starts the game. Move with WASD or Arrow keys. R restarts.
+
+import draw
+import time.{clock}
+import config
+import global_state:state
+import components.player
+import components.hand
+import game_phases
+import services.visualization
+import services.music
+
+ctx = draw.canvas(360, 640, "Don't Touch My Presents", "./data/assets/gift.png")
+draw.cursor(ctx, false)
+
+player_sprite = player.make()
+
+left_hand = hand.make("left")
+right_hand = hand.make("right")
+
+visualization.load(config.ASSET_DIR)
+
+music.load(config.AUDIO_DIR)
+
+state.game.last_frame = clock()
+
+fun frame(canvas) {
+    let now = clock()
+    let dt = now - state.game.last_frame
+    state.game.last_frame = now
+    if dt < 0 dt = 0
+    if dt > .05 dt = .05
+
+    game_phases.update(canvas, draw, dt, player_sprite, left_hand, right_hand)
+    game_phases.render(canvas, draw, player_sprite, left_hand, right_hand)
+    music.start_background()
+}
+
+draw.animate(ctx, frame)
+draw.run(ctx)

@@ -1,0 +1,49 @@
+import audio
+
+background_tracks = []
+chop_sounds = []
+cheer_sounds = []
+score_sound = nil
+slap_sound = nil
+
+fun load(audio_dir) {
+    background_tracks = [
+        audio_dir + "sleigh_ride.ogg",
+        audio_dir + "merry_christmas.ogg",
+        audio_dir + "here_comes_santa.ogg"
+    ]
+    chop_sounds = [
+        audio.load(audio_dir + "chop.wav"),
+        audio.load(audio_dir + "chop_2.wav"),
+        audio.load(audio_dir + "chop_3.wav")
+    ]
+    cheer_sounds = [
+        audio.load(audio_dir + "cheer.wav"),
+        audio.load(audio_dir + "cheer_2.wav"),
+        audio.load(audio_dir + "cheer_3.wav"),
+        audio.load(audio_dir + "cheer_4.wav")
+    ]
+    score_sound = audio.load(audio_dir + "score.wav")
+    slap_sound = audio.load(audio_dir + "slap.wav")
+}
+
+fun start_background() {
+    if audio.music_isPlaying() return
+    audio.play_music(background_tracks[rand(0, #background_tracks - 1)])
+}
+
+fun play_score() {
+    audio.play(score_sound)
+}
+
+fun play_slap() {
+    audio.play(slap_sound)
+}
+
+fun play_chop() {
+    audio.play(chop_sounds[rand(0, #chop_sounds - 1)])
+}
+
+fun play_cheer() {
+    audio.play(cheer_sounds[rand(0, #cheer_sounds - 1)])
+}
