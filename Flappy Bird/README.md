@@ -2,7 +2,10 @@
 
 A PiLang implementation of the familiar one-button arcade game. Guide the bird through an endless series of pipes and try to set a new high score.
 
-![Flappy Bird gameplay screenshot](screenshot.png)
+<p align="center" >
+    <img src="./screenshot.png" width = 200>
+</p>
+
 
 ## Play
 
@@ -36,6 +39,22 @@ This updates `main.px` and replaces `Flappy Bird.exe`. To compile only the PiLan
 ..\pilang.exe build .\main.pi
 ```
 
+## Web build
+
+Create a static website with the browser runtime, sprites, and sounds:
+
+```powershell
+..\..\pilang\bin\pilang.exe pack target:web
+```
+
+Upload the generated `dist/` folder to any static host, or preview it locally from this folder:
+
+```powershell
+python -m http.server 8000 --directory dist
+```
+
+Then open `http://localhost:8000`. Do not open `index.html` with `file://`; browsers must fetch the WebAssembly runtime and assets over HTTP.
+
 ## Project layout
 
 | Path | Purpose |
@@ -43,7 +62,7 @@ This updates `main.px` and replaces `Flappy Bird.exe`. To compile only the PiLan
 | `main.pi` | Game source code |
 | `sprites/` | Backgrounds, bird frames, pipes, score digits, and interface art |
 | `audio/` | Flap, score, collision, and game-over sounds |
-| `package.loon` | Windows packaging configuration |
+| `package.loon` | Windows and web packaging configuration |
 
 ## License
 

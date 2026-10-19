@@ -1,5 +1,9 @@
 # PiLang Games
 
+<p align="center">  
+    <img src="games.png" alt="Pilang logo" width="500">  
+</p>
+
 A small collection of games written in [PiLang](https://github.com/rolandbrake/pilang). The included `pilang.exe` is the PiLang runtime used to run and package the source projects on Windows.
 
 ## Games
@@ -42,16 +46,18 @@ Keep the hands away from the present for as long as possible.
 
 ## Rebuild the games
 
-Each game has a `package.loon` manifest. From the game's own folder, run `pack` with the included runtime:
+Each game has a `package.loon` manifest. From the game's own folder, run `pack` with the included runtime for windows executable or for browser support:
 
 ```powershell
 Set-Location ".\Don't Touch My Presents"
 ..\pilang.exe pack target:win
+..\pilang.exe pack target:web
 ```
 
 ```powershell
 Set-Location ".\Flappy Bird"
 ..\pilang.exe pack target:win
+..\pilang.exe pack target:web
 ```
 
 This rebuilds `main.px` and creates the `.exe` named by that game's `package.loon`. It replaces the existing game executable, so make a copy first if you need to keep it.

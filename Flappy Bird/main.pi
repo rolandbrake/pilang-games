@@ -88,7 +88,7 @@ fun update(canvas, dt) {
     let flap_down = draw.key(canvas, draw.KEY_SPACE) ||
                     draw.key(canvas, draw.KEY_UP) ||
                     mouse.left
-    let flap_pressed = flap_down && !flap_was_down
+    let flap_pressed = flap_down and !flap_was_down
     flap_was_down = flap_down
 
     if flap_pressed {
@@ -115,7 +115,7 @@ fun update(canvas, dt) {
         for pipe in pipes {
             pipe.x -= speed * dt
 
-            if !pipe.scored && pipe.x + PIPE_W < BIRD_X {
+            if !pipe.scored and pipe.x + PIPE_W < BIRD_X {
                 pipe.scored = true
                 score += 1
                 audio.play(point)

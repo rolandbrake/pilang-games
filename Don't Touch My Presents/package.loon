@@ -6,3 +6,7 @@ targets:
     output: "Don't Touch My Presents.exe"
     console: false
     icon: "data/assets/gift.png"
+  web:
+    output: "dist"
+    icon: "data/assets/gift.png"
+    files: ["data/audio", "data/assets", "data/menu", "data/assets/gift.png"]

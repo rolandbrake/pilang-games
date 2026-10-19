@@ -6,3 +6,7 @@ targets:
     output: "Flappy Bird.exe"
     console: false
     icon: "./favicon.ico"
+  web:
+    output: "dist"
+    icon: "favicon.ico"
+    files: ["sprites", "audio", "favicon.ico"]

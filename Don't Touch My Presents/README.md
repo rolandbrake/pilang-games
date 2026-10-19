@@ -42,6 +42,12 @@ To rebuild the Windows executable described by `package.loon`:
 ..\pilang.exe pack target:win
 ```
 
+To rebuild the Browser support described by `package.loon`:
+
+```powershell
+..\pilang.exe pack target:web
+```
+
 The packaging command recreates `main.px` and replaces `Don't Touch My Presents.exe`. Make a copy first if you need to preserve the existing executable.
 
 ## Project layout
