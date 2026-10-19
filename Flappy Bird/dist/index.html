@@ -1,1 +1,190 @@
-<!doctype html><meta charset="utf-8"><title>Flappy Bird</title><link rel="icon" href="favicon.ico"><canvas></canvas><script type="module">import createPilang from './pilang.js';const app=await createPilang({canvas:document.querySelector('canvas'),noInitialRun:true});const files=["main.px","sprites/0.png","sprites/1.png","sprites/2.png","sprites/3.png","sprites/4.png","sprites/5.png","sprites/6.png","sprites/7.png","sprites/8.png","sprites/9.png","sprites/background-day.png","sprites/background-night.png","sprites/base.png","sprites/bluebird-downflap.png","sprites/bluebird-midflap.png","sprites/bluebird-upflap.png","sprites/gameover.png","sprites/message.png","sprites/pipe-green.png","sprites/pipe-red.png","sprites/redbird-downflap.png","sprites/redbird-midflap.png","sprites/redbird-upflap.png","sprites/yellowbird-downflap.png","sprites/yellowbird-midflap.png","sprites/yellowbird-upflap.png","audio/die.ogg","audio/die.wav","audio/hit.ogg","audio/hit.wav","audio/point.ogg","audio/point.wav","audio/swoosh.ogg","audio/swoosh.wav","audio/wing.ogg","audio/wing.wav","favicon.ico",];for(const p of files){const r=await fetch(p),b=new Uint8Array(await r.arrayBuffer());app.FS.mkdirTree('/'+p.split('/').slice(0,-1).join('/'));app.FS.writeFile('/'+p,b)}app.ccall('execute_px','number',['string'],['/'+files[0]]);</script>
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+  />
+
+  <title>Flappy Bird</title>
+  <link rel="icon" href="favicon.ico" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #6293ed;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      min-height: 100vh;
+      min-height: 100dvh;
+
+      /* Prevent accidental scrolling or pull-to-refresh */
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    canvas {
+      display: block;
+
+      /* Center and scale the game without stretching */
+      width: auto;
+      height: auto;
+
+      border: 1px solid #000;
+
+      max-width: 100vw;
+      max-height: 100vh;
+      max-height: 100dvh;
+
+      object-fit: contain;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* Mobile and tablet */
+    @media (max-width: 768px) {
+      body {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+      }
+
+      canvas {
+        /*
+          Fill the available screen while preserving
+          the canvas's intrinsic aspect ratio.
+        */
+        width: 100vw;
+        height: 100dvh;
+        max-width: 100vw;
+        max-height: 100dvh;
+      }
+    }
+
+    /* Landscape phones */
+    @media (max-width: 768px) and (orientation: landscape) {
+      canvas {
+        width: 100vw;
+        height: 100dvh;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="game"></canvas>
+
+  <script type="module">
+    import createPilang from "./pilang.js";
+
+    const canvas = document.querySelector("#game");
+
+    const app = await createPilang({
+      canvas,
+      noInitialRun: true,
+    });
+
+    const files = [
+      "main.px",
+
+      "sprites/0.png",
+      "sprites/1.png",
+      "sprites/2.png",
+      "sprites/3.png",
+      "sprites/4.png",
+      "sprites/5.png",
+      "sprites/6.png",
+      "sprites/7.png",
+      "sprites/8.png",
+      "sprites/9.png",
+
+      "sprites/background-day.png",
+      "sprites/background-night.png",
+      "sprites/base.png",
+
+      "sprites/bluebird-downflap.png",
+      "sprites/bluebird-midflap.png",
+      "sprites/bluebird-upflap.png",
+
+      "sprites/gameover.png",
+      "sprites/message.png",
+
+      "sprites/pipe-green.png",
+      "sprites/pipe-red.png",
+
+      "sprites/redbird-downflap.png",
+      "sprites/redbird-midflap.png",
+      "sprites/redbird-upflap.png",
+
+      "sprites/yellowbird-downflap.png",
+      "sprites/yellowbird-midflap.png",
+      "sprites/yellowbird-upflap.png",
+
+      "audio/die.ogg",
+      "audio/die.wav",
+
+      "audio/hit.ogg",
+      "audio/hit.wav",
+
+      "audio/point.ogg",
+      "audio/point.wav",
+
+      "audio/swoosh.ogg",
+      "audio/swoosh.wav",
+
+      "audio/wing.ogg",
+      "audio/wing.wav",
+
+      "favicon.ico",
+    ];
+
+    // Load all game assets into the virtual filesystem.
+    for (const path of files) {
+      const response = await fetch(path);
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load "${path}": HTTP ${response.status}`
+        );
+      }
+
+      const buffer = new Uint8Array(
+        await response.arrayBuffer()
+      );
+
+      const directory = "/" +
+        path.split("/").slice(0, -1).filter(Boolean).join("/");
+
+      if (directory !== "/") {
+        app.FS.mkdirTree(directory);
+      }
+
+      app.FS.writeFile("/" + path, buffer);
+    }
+
+    // Start Flappy Bird.
+    app.ccall(
+      "execute_px",
+      "number",
+      ["string"],
+      ["/main.px"]
+    );
+  </script>
+</body>
+</html>

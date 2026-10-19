@@ -6,6 +6,14 @@
 
 A small collection of games written in [PiLang](https://github.com/rolandbrake/pilang). The included `pilang.exe` is the PiLang runtime used to run and package the source projects on Windows.
 
+## Trying
+
+you can try the availble games using only your borwser using these links:
+<br/>
+[Flappy Bird](https://flappybird-rolandbrake.wasmer.app/)
+<br/>
+[Don't touch my presents](https://donttouchmypresents-rolandbrake.wasmer.app/)
+
 ## Games
 
 | Game | Play it | Source folder |
