@@ -8,7 +8,7 @@ A small collection of games written in [PiLang](https://github.com/rolandbrake/p
 
 ## Trying
 
-you can try the availble games using only your borwser using these links:
+you can try the availble deployed games using only your borwser using these links:
 <br/>
 [Flappy Bird](https://flappybird-rolandbrake.wasmer.app/)
 <br/>
