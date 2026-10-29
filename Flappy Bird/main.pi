@@ -17,7 +17,7 @@ PIPE_H = 320
 PIPE_GAP = 110
 PIPE_SPEED = 115
 
-ctx = draw.canvas(WIDTH * SCALE, HEIGHT * SCALE, "PiLang Flappy Bird","./favicon.ico")
+ctx = draw.canvas(WIDTH * SCALE, HEIGHT * SCALE, "PiLang Flappy Bird", "./favicon.ico")
 draw.cursor(ctx, false)
 
 ASSET = "sprites/"
@@ -71,9 +71,9 @@ fun flap() {
 }
 
 fun overlaps_pipe(pipe) {
-    if BIRD_X + BIRD_W - 6 <= pipe.x + 4 || BIRD_X + 6 >= pipe.x + PIPE_W - 4 
+    if BIRD_X + BIRD_W - 6 <= pipe.x + 4 or BIRD_X + 6 >= pipe.x + PIPE_W - 4 
         return false
-    return bird_y + 5 < pipe.gap_y || bird_y + BIRD_H - 5 > pipe.gap_y + PIPE_GAP
+    return bird_y + 5 < pipe.gap_y or bird_y + BIRD_H - 5 > pipe.gap_y + PIPE_GAP
 }
 
 fun end_game() {
@@ -85,8 +85,8 @@ fun end_game() {
 
 fun update(canvas, dt) {
     let mouse = draw.mouse(canvas)
-    let flap_down = draw.key(canvas, draw.KEY_SPACE) ||
-                    draw.key(canvas, draw.KEY_UP) ||
+    let flap_down = draw.key(canvas, draw.KEY_SPACE) or
+                    draw.key(canvas, draw.KEY_UP)    or
                     mouse.left
     let flap_pressed = flap_down and !flap_was_down
     flap_was_down = flap_down
@@ -101,7 +101,7 @@ fun update(canvas, dt) {
             flap()        
     }
 
-    if state == "ready" || state == "game_over" return
+    if state == "ready" or state == "game_over" return
 
     bird_velocity += 780 * dt
     bird_y += bird_velocity * dt
@@ -201,9 +201,8 @@ fun render(canvas) {
 
     if state == "ready" 
         sprite(canvas, ASSET + "message.png", 52, 110, 184, 267)
-    elif state == "game_over" {
-        sprite(canvas, ASSET + "gameover.png", 48, 200, 192, 42)
-    }
+    elif state == "game_over" 
+        sprite(canvas, ASSET + "gameover.png", 48, 200, 192, 42)    
 }
 
 reset_game()

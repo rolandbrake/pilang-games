@@ -75,8 +75,8 @@ fun update_gameplay(canvas, draw, dt, player_sprite, left_hand, right_hand) {
         scoreboard.record_best(state.game)
         music.play_slap()
 
-        // Add a 0.5s delay before returning to the menu 
-        sleep(500)
+        // Add a 0.5s delay before returning to the menu
+        // sleep(500)
 
         state.game.phase = "menu"
         state.game.press_y = 520

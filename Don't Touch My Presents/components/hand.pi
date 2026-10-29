@@ -29,7 +29,7 @@ fun update(hand, player, game, dt, settings) {
     let speed_bonus = min(game.score * settings.SPEED_PER_SCORE, settings.MAX_SPEED_BONUS)
     hand.y += hand.speed * (1 + speed_bonus) * dt
     hand.x = x_at(hand)
-    if !hand.scored && hand.y - 28 > player.y - 35 {
+    if !hand.scored and hand.y - 28 > player.y - 35 {
         game.score += 1
         hand.scored = true
         event = 1
@@ -55,8 +55,8 @@ fun keep_apart(first, second, minimum_gap) {
 }
 
 fun hits_player(hand, player, settings) {
-    return player.x + settings.PLAYER_SIZE / 2 > hand.x - 42 &&
-           player.x - settings.PLAYER_SIZE / 2 < hand.x + 42 &&
-           player.y + settings.PLAYER_SIZE / 2 > hand.y - 28 &&
+    return player.x + settings.PLAYER_SIZE / 2 > hand.x - 42 and
+           player.x - settings.PLAYER_SIZE / 2 < hand.x + 42 and
+           player.y + settings.PLAYER_SIZE / 2 > hand.y - 28 and
            player.y - settings.PLAYER_SIZE / 2 < hand.y + 42
 }
