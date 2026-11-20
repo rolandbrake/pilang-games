@@ -1,0 +1,328 @@
+import draw,
+       random,
+       time.{clock}
+import config.{WIDTH, HEIGHT, DOTS_X, DOTS_Y, SPACING, GRID_X, GRID_Y,
+               DOT_PICK_RADIUS, AI_MOVE_DELAY, GRAVITY}
+import board.{Board}
+import audio_manager.{GameAudio}
+import renderer.{Renderer}
+
+class Game {
+    constructor() {
+        this.board = Board()
+        this.audio = GameAudio()
+        this.renderer = Renderer()
+        this.canvas = draw.canvas(WIDTH, HEIGHT, "Dots and Boxes",
+                                  this.renderer.icon_path,
+                                  show_launch=true,
+                                  close_on_escape=false)
+        this.screen = "menu"
+        this.options_return_screen = "menu"
+        this.opponent_type = "AI"
+        this.quit_requested = false
+        this.confirm_return_to_menu = false
+        this.particles = []
+        this.player = 1
+        this.game_over = false
+        this.ai_move_wait = 0
+        this.mouse_was_down = false
+        this.dragging = false
+        this.drag_row = -1
+        this.drag_column = -1
+        this.r_was_down = false
+        this.escape_was_down = false
+        this.last_frame = clock()
+    }
+
+    restart() {
+        this.board.reset()
+        this.particles = []
+        this.player = 1
+        this.game_over = false
+        this.ai_move_wait = 0
+        this.dragging = false
+        this.last_frame = clock()
+    }
+
+    spawnBoxParticles(row_index, column_index) {
+        let center_x = GRID_X + column_index * SPACING + SPACING / 2,
+            center_y = GRID_Y + row_index * SPACING + SPACING / 2,
+            particle_color = 0x3498DB
+        if this.player == 2
+            particle_color = 0xE74C3C
+
+        for i in 0..12 {
+            this.particles.push({
+                x: center_x,
+                y: center_y,
+                vx: random.randint(-150, 150),
+                vy: -random.randint(70, 220),
+                life: 0.8,
+                color: particle_color
+            })
+        }
+    }
+
+    captureBoxes() {
+        let captured = this.board.claimCompletedBoxes(this.player)
+        if #captured > 0 {
+            this.audio.playBox()
+            for box in captured
+                this.spawnBoxParticles(box[0], box[1])
+        }
+        return #captured > 0
+    }
+
+    checkGameOver() {
+        if !this.game_over &&
+           this.board.scores[0] + this.board.scores[1] ==
+           (DOTS_X - 1) * (DOTS_Y - 1) {
+            this.game_over = true
+            this.audio.playFinish()
+        }
+    }
+
+    finishMove() {
+        if !this.captureBoxes() {
+            this.player = 3 - this.player
+            this.audio.playTurn()
+        }
+
+        if this.opponent_type == "AI" && this.player == 2
+            this.ai_move_wait = AI_MOVE_DELAY
+        else
+            this.ai_move_wait = 0
+
+        this.checkGameOver()
+    }
+
+    connectDots(start_row, start_column, end_row, end_column) {
+        if this.game_over ||
+           (this.player != 1 && this.opponent_type != "Human")
+            return
+
+        if !this.board.connectDots(start_row, start_column,
+                                   end_row, end_column, this.player) {
+            this.audio.playError()
+            return
+        }
+
+        this.audio.playConnect()
+        this.finishMove()
+    }
+
+    playAITurn(dt) {
+        if this.screen != "game" || this.opponent_type != "AI" ||
+           this.confirm_return_to_menu || this.game_over || this.player != 2
+            return
+
+        this.ai_move_wait -= dt
+        if this.ai_move_wait > 0
+            return
+
+        let moves = []
+        for row_index in 0..DOTS_Y {
+            for column_index in 0..DOTS_X - 1 {
+                if this.board.horizontal[row_index][column_index] == 0
+                    moves.push([0, row_index, column_index])
+            }
+        }
+        for row_index in 0..DOTS_Y - 1 {
+            for column_index in 0..DOTS_X {
+                if this.board.vertical[row_index][column_index] == 0
+                    moves.push([1, row_index, column_index])
+            }
+        }
+
+        let best_move = nil,
+            best_score = -100000
+        for move in moves {
+            let quality = this.board.edgeQuality(move[0], move[1], move[2]),
+                score = quality[0] * 100 - quality[1] * 10 +
+                        random.randint(0, 9)
+            if score > best_score {
+                best_move = move
+                best_score = score
+            }
+        }
+
+        if best_move == nil
+            return
+        if !this.board.connectEdge(best_move[0], best_move[1],
+                                   best_move[2], this.player)
+            return
+
+        this.audio.playConnect()
+        this.finishMove()
+    }
+
+    updateParticles(dt) {
+        let active_particles = []
+        for particle in this.particles {
+            particle.vy += GRAVITY * dt
+            particle.x += particle.vx * dt
+            particle.y += particle.vy * dt
+            particle.life -= dt
+            if particle.life > 0
+                active_particles.push(particle)
+        }
+        this.particles = active_particles
+    }
+
+    handleInput(mouse, hovered_dot) {
+        let r_down = draw.key(this.canvas, draw.KEY_R),
+            escape_down = draw.key(this.canvas, draw.KEY_ESCAPE)
+        if this.screen == "game" && !this.confirm_return_to_menu &&
+           r_down && !this.r_was_down {
+            this.audio.playRetry()
+            this.restart()
+        }
+        this.r_was_down = r_down
+
+        if escape_down && !this.escape_was_down {
+            this.audio.playSelect()
+            if this.confirm_return_to_menu
+                this.confirm_return_to_menu = false
+            elif this.screen == "game" {
+                this.confirm_return_to_menu = true
+                this.dragging = false
+            } elif this.screen == "options"
+                this.screen = this.options_return_screen
+        }
+        this.escape_was_down = escape_down
+
+        if this.confirm_return_to_menu {
+            if !mouse.left && this.mouse_was_down {
+                if mouse.x >= 175 && mouse.x <= 320 &&
+                   mouse.y >= 358 && mouse.y <= 408 {
+                    this.audio.playSelect()
+                    this.confirm_return_to_menu = false
+                    this.screen = "menu"
+                } elif mouse.x >= 360 && mouse.x <= 505 &&
+                      mouse.y >= 358 && mouse.y <= 408 {
+                    this.audio.playSelect()
+                    this.confirm_return_to_menu = false
+                }
+            }
+            this.mouse_was_down = mouse.left
+            return
+        }
+
+        if this.screen != "game" {
+            if !mouse.left && this.mouse_was_down {
+                if this.screen == "menu" {
+                    if mouse.x >= 220 && mouse.x <= 460 &&
+                       mouse.y >= 346 && mouse.y <= 410 {
+                        this.audio.playSelect()
+                        this.restart()
+                        this.screen = "game"
+                    } elif mouse.x >= 220 && mouse.x <= 460 &&
+                          mouse.y >= 420 && mouse.y <= 484 {
+                        this.audio.playSelect()
+                        this.options_return_screen = "menu"
+                        this.screen = "options"
+                    } elif mouse.x >= 220 && mouse.x <= 460 &&
+                          mouse.y >= 494 && mouse.y <= 558 {
+                        this.audio.playSelect()
+                        this.quit_requested = true
+                        draw.close(this.canvas)
+                        return
+                    }
+                } elif this.screen == "options" {
+                    if mouse.x >= 220 && mouse.x <= 460 &&
+                       mouse.y >= 219 && mouse.y <= 273 {
+                        this.audio.playSelect()
+                        if this.opponent_type == "AI"
+                            this.opponent_type = "Human"
+                        else
+                            this.opponent_type = "AI"
+                    } elif mouse.x >= 220 && mouse.x <= 460 &&
+                          mouse.y >= 290 && mouse.y <= 344 {
+                        this.audio.playSelect()
+                        this.audio.setMusicEnabled(
+                            !this.audio.music_enabled)
+                    } elif mouse.x >= 220 && mouse.x <= 460 &&
+                          mouse.y >= 468 && mouse.y <= 522 {
+                        this.audio.playSelect()
+                        this.screen = this.options_return_screen
+                    }
+                }
+            }
+
+            if this.screen == "options" && mouse.left &&
+               mouse.x >= 185 && mouse.x <= 495 &&
+               mouse.y >= 366 && mouse.y <= 406 {
+                let slider_step = round((mouse.x - 185) / 310 * 5)
+                this.audio.setMusicVolume(slider_step / 5)
+            }
+            if this.screen == "options" && mouse.left &&
+               mouse.x >= 185 && mouse.x <= 495 &&
+               mouse.y >= 421 && mouse.y <= 461 {
+                let slider_step = round((mouse.x - 185) / 310 * 5)
+                this.audio.setEffectsVolume(slider_step / 5)
+            }
+            this.mouse_was_down = mouse.left
+            return
+        }
+
+        if !mouse.left && this.mouse_was_down {
+            if mouse.x >= 520 && mouse.x <= 562 &&
+               mouse.y >= 16 && mouse.y <= 58 {
+                this.audio.playSelect()
+                this.options_return_screen = "game"
+                this.screen = "options"
+                this.dragging = false
+            } elif mouse.x >= 568 && mouse.x <= 610 &&
+                  mouse.y >= 16 && mouse.y <= 58 {
+                this.audio.playRetry()
+                this.restart()
+            } elif mouse.x >= 616 && mouse.x <= 658 &&
+                  mouse.y >= 16 && mouse.y <= 58 {
+                this.audio.playSelect()
+                this.audio.toggleMusic()
+            }
+        }
+
+        if mouse.left && !this.mouse_was_down &&
+           this.screen == "game" &&
+           (this.player == 1 || this.opponent_type == "Human") &&
+           !this.game_over {
+            if hovered_dot[2] <= DOT_PICK_RADIUS * DOT_PICK_RADIUS {
+                this.dragging = true
+                this.drag_row = hovered_dot[0]
+                this.drag_column = hovered_dot[1]
+                this.audio.playSelect()
+            }
+        }
+        if !mouse.left && this.mouse_was_down && this.dragging {
+            if hovered_dot[2] <= DOT_PICK_RADIUS * DOT_PICK_RADIUS
+                this.connectDots(this.drag_row, this.drag_column,
+                                  hovered_dot[0], hovered_dot[1])
+            this.dragging = false
+        }
+        this.mouse_was_down = mouse.left
+    }
+
+    frame(canvas) {
+        let now = clock(),
+            dt = now - this.last_frame,
+            mouse = draw.mouse(canvas),
+            hovered_dot = this.board.nearestDot(mouse.x, mouse.y)
+        this.last_frame = now
+        if dt > 0.05 dt = 0.05
+        if dt < 0 dt = 0
+
+        this.handleInput(mouse, hovered_dot)
+        this.audio.update(dt)
+        if this.quit_requested
+            return
+        if !this.confirm_return_to_menu {
+            this.playAITurn(dt)
+            this.board.update(dt, hovered_dot, this.dragging,
+                              this.drag_row, this.drag_column)
+            this.updateParticles(dt)
+        }
+        this.renderer.render(canvas, this, mouse, hovered_dot)
+        this.audio.startMusic()
+    }
+}

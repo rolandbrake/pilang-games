@@ -1,0 +1,226 @@
+import config.{DOTS_X, DOTS_Y, SPACING, GRID_X, GRID_Y, DOT_PICK_RADIUS,
+               EDGE_ANIMATION_SPEED}
+
+class Board {
+    constructor() {
+        this.reset()
+    }
+
+    makeGrid(rows, columns, initial_value = 0) {
+        let grid = []
+        for row_index in 0..rows {
+            let row = []
+            for column_index in 0..columns
+                row.push(initial_value)
+            grid.push(row)
+        }
+        return grid
+    }
+
+    reset() {
+        this.horizontal = this.makeGrid(DOTS_Y, DOTS_X - 1)
+        this.vertical = this.makeGrid(DOTS_Y - 1, DOTS_X)
+        this.boxes = this.makeGrid(DOTS_Y - 1, DOTS_X - 1)
+        this.horizontal_animation = this.makeGrid(DOTS_Y, DOTS_X - 1, 1)
+        this.vertical_animation = this.makeGrid(DOTS_Y - 1, DOTS_X, 1)
+        this.box_animation = this.makeGrid(DOTS_Y - 1, DOTS_X - 1, 1)
+        this.dot_hover = this.makeGrid(DOTS_Y, DOTS_X)
+        this.scores = [0, 0]
+    }
+
+    nearestDot(mouse_x, mouse_y) {
+        let best_row = 0,
+            best_column = -1,
+            best_distance = 1000000000
+
+        for row_index in 0..DOTS_Y {
+            for column_index in 0..DOTS_X {
+                let dot_x = GRID_X + column_index * SPACING,
+                    dot_y = GRID_Y + row_index * SPACING,
+                    dx = mouse_x - dot_x,
+                    dy = mouse_y - dot_y,
+                    distance = dx * dx + dy * dy
+                if distance < best_distance {
+                    best_distance = distance
+                    best_row = row_index
+                    best_column = column_index
+                }
+            }
+        }
+
+        return [best_row, best_column, best_distance]
+    }
+
+    canConnect(start_row, start_column, end_row, end_column) {
+        if start_row == end_row &&
+           (start_column + 1 == end_column || end_column + 1 == start_column) {
+            let edge_column = start_column
+            if end_column < edge_column
+                edge_column = end_column
+            return this.horizontal[start_row][edge_column] == 0
+        }
+
+        if start_column == end_column &&
+           (start_row + 1 == end_row || end_row + 1 == start_row) {
+            let edge_row = start_row
+            if end_row < edge_row
+                edge_row = end_row
+            return this.vertical[edge_row][start_column] == 0
+        }
+
+        return false
+    }
+
+    connectEdge(kind, row, column, owner) {
+        if kind == 0 {
+            if this.horizontal[row][column] != 0
+                return false
+            this.horizontal[row][column] = owner
+            this.horizontal_animation[row][column] = 0
+            return true
+        }
+
+        if kind == 1 {
+            if this.vertical[row][column] != 0
+                return false
+            this.vertical[row][column] = owner
+            this.vertical_animation[row][column] = 0
+            return true
+        }
+
+        return false
+    }
+
+    connectDots(start_row, start_column, end_row, end_column, owner) {
+        if !this.canConnect(start_row, start_column, end_row, end_column)
+            return false
+
+        if start_row == end_row {
+            let edge_column = start_column
+            if end_column < edge_column
+                edge_column = end_column
+            return this.connectEdge(0, start_row, edge_column, owner)
+        }
+
+        let edge_row = start_row
+        if end_row < edge_row
+            edge_row = end_row
+        return this.connectEdge(1, edge_row, start_column, owner)
+    }
+
+    claimCompletedBoxes(owner) {
+        let captured = []
+        for row_index in 0..DOTS_Y - 1 {
+            for column_index in 0..DOTS_X - 1 {
+                if this.boxes[row_index][column_index] == 0 &&
+                   this.horizontal[row_index][column_index] != 0 &&
+                   this.horizontal[row_index + 1][column_index] != 0 &&
+                   this.vertical[row_index][column_index] != 0 &&
+                   this.vertical[row_index][column_index + 1] != 0 {
+                    this.boxes[row_index][column_index] = owner
+                    this.box_animation[row_index][column_index] = 0
+                    this.scores[owner - 1] += 1
+                    captured.push([row_index, column_index])
+                }
+            }
+        }
+        return captured
+    }
+
+    edgeQuality(kind, edge_row, edge_column) {
+        let captures = 0,
+            risks = 0
+
+        for row_index in 0..DOTS_Y - 1 {
+            for column_index in 0..DOTS_X - 1 {
+                let touches_edge = false
+                if kind == 0 &&
+                   column_index == edge_column &&
+                   (row_index == edge_row || row_index + 1 == edge_row)
+                    touches_edge = true
+                if kind == 1 &&
+                   row_index == edge_row &&
+                   (column_index == edge_column || column_index + 1 == edge_column)
+                    touches_edge = true
+
+                if touches_edge && this.boxes[row_index][column_index] == 0 {
+                    let sides = 0
+                    if this.horizontal[row_index][column_index] != 0
+                        sides += 1
+                    if this.horizontal[row_index + 1][column_index] != 0
+                        sides += 1
+                    if this.vertical[row_index][column_index] != 0
+                        sides += 1
+                    if this.vertical[row_index][column_index + 1] != 0
+                        sides += 1
+
+                    if sides == 3
+                        captures += 1
+                    elif sides == 2
+                        risks += 1
+                }
+            }
+        }
+
+        return [captures, risks]
+    }
+
+    update(dt, hovered_dot, dragging, drag_row, drag_column) {
+        for row_index in 0..DOTS_Y {
+            for column_index in 0..DOTS_X - 1 {
+                if this.horizontal[row_index][column_index] != 0 &&
+                   this.horizontal_animation[row_index][column_index] < 1 {
+                    this.horizontal_animation[row_index][column_index] +=
+                        EDGE_ANIMATION_SPEED * dt
+                    if this.horizontal_animation[row_index][column_index] > 1
+                        this.horizontal_animation[row_index][column_index] = 1
+                }
+            }
+        }
+
+        for row_index in 0..DOTS_Y - 1 {
+            for column_index in 0..DOTS_X {
+                if this.vertical[row_index][column_index] != 0 &&
+                   this.vertical_animation[row_index][column_index] < 1 {
+                    this.vertical_animation[row_index][column_index] +=
+                        EDGE_ANIMATION_SPEED * dt
+                    if this.vertical_animation[row_index][column_index] > 1
+                        this.vertical_animation[row_index][column_index] = 1
+                }
+            }
+        }
+
+        for row_index in 0..DOTS_Y - 1 {
+            for column_index in 0..DOTS_X - 1 {
+                if this.boxes[row_index][column_index] != 0 &&
+                   this.box_animation[row_index][column_index] < 1 {
+                    this.box_animation[row_index][column_index] +=
+                        EDGE_ANIMATION_SPEED * dt
+                    if this.box_animation[row_index][column_index] > 1
+                        this.box_animation[row_index][column_index] = 1
+                }
+            }
+        }
+
+        for row_index in 0..DOTS_Y {
+            for column_index in 0..DOTS_X {
+                let is_hovered = hovered_dot[2] <= DOT_PICK_RADIUS * DOT_PICK_RADIUS &&
+                                 hovered_dot[0] == row_index &&
+                                 hovered_dot[1] == column_index
+                if dragging && drag_row == row_index &&
+                   drag_column == column_index
+                    is_hovered = true
+
+                if is_hovered {
+                    this.dot_hover[row_index][column_index] += dt * 10
+                    if this.dot_hover[row_index][column_index] > 1
+                        this.dot_hover[row_index][column_index] = 1
+                } else {
+                    this.dot_hover[row_index][column_index] -= dt * 10
+                    if this.dot_hover[row_index][column_index] < 0
+                        this.dot_hover[row_index][column_index] = 0
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,7 @@
+import draw
+import game.{Game}
+
+game = Game()
+draw.animate(game.canvas, game.frame)
+draw.run(game.canvas)
+game.audio.stopMusic()

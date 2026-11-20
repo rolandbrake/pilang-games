@@ -1,0 +1,142 @@
+import audio
+
+class GameAudio {
+    constructor() {
+        this.music_path = "assets/background_music.mp3"
+        this.music_enabled = true
+        this.music_setting = 1
+        this.music_volume = 1
+        this.music_target_volume = 1
+        this.music_fade_speed = 2
+        this.music_paused = false
+        this.music_started = false
+        this.effects_volume = 1
+        this.connect_sound = audio.load("assets/edge_connect.wav")
+        this.box_sound = audio.load("assets/box_claim.wav")
+        this.turn_sound = audio.load("assets/turn_switch.wav")
+        this.error_sound = audio.load("assets/invalid_move.wav")
+        this.retry_sound = audio.load("assets/restart_confirm.wav")
+        this.finish_sound = audio.load("assets/game_finish.wav")
+        this.select_sound = audio.load("assets/button_click.wav")
+        this.effects = [this.connect_sound, this.box_sound, this.turn_sound,
+                        this.error_sound, this.retry_sound, this.finish_sound,
+                        this.select_sound]
+    }
+
+    startMusic() {
+        if this.music_started
+            return
+
+        audio.play_music(this.music_path, -1)
+        this.music_volume = this.music_target_volume
+        audio.music_volume(this.music_volume)
+        this.music_started = true
+        if this.music_volume == 0 {
+            audio.pause_music()
+            this.music_paused = true
+        }
+    }
+
+    setMusicEnabled(enabled) {
+        if this.music_enabled == enabled
+            return
+
+        this.music_enabled = enabled
+        this.updateMusicPlayback()
+    }
+
+    updateMusicPlayback() {
+        if this.music_enabled && this.music_setting > 0 {
+            this.music_target_volume = this.music_setting
+            if this.music_started && this.music_paused {
+                audio.resume_music()
+                this.music_paused = false
+            }
+        } else
+            this.music_target_volume = 0
+    }
+
+    update(dt) {
+        if !this.music_started ||
+           this.music_volume == this.music_target_volume
+            return
+
+        let change = this.music_fade_speed * dt
+        if this.music_volume < this.music_target_volume {
+            this.music_volume += change
+            if this.music_volume > this.music_target_volume
+                this.music_volume = this.music_target_volume
+        } else {
+            this.music_volume -= change
+            if this.music_volume < this.music_target_volume
+                this.music_volume = this.music_target_volume
+        }
+
+        audio.music_volume(this.music_volume)
+        if this.music_volume == 0 && this.music_target_volume == 0 &&
+           !this.music_paused {
+            audio.pause_music()
+            this.music_paused = true
+        }
+    }
+
+    setMusicVolume(volume) {
+        if volume < 0
+            volume = 0
+        if volume > 1
+            volume = 1
+        this.music_setting = volume
+        this.updateMusicPlayback()
+    }
+
+    setEffectsVolume(volume) {
+        if volume < 0
+            volume = 0
+        if volume > 1
+            volume = 1
+        this.effects_volume = volume
+        for effect in this.effects
+            audio.volume(effect, volume)
+    }
+
+    toggleMusic() {
+        this.setMusicEnabled(!this.music_enabled)
+    }
+
+    playEffect(effect) {
+        if this.effects_volume > 0
+            audio.play(effect)
+    }
+
+    playConnect() {
+        this.playEffect(this.connect_sound)
+    }
+
+    playBox() {
+        this.playEffect(this.box_sound)
+    }
+
+    playTurn() {
+        this.playEffect(this.turn_sound)
+    }
+
+    playError() {
+        this.playEffect(this.error_sound)
+    }
+
+    playRetry() {
+        this.playEffect(this.retry_sound)
+    }
+
+    playFinish() {
+        this.playEffect(this.finish_sound)
+    }
+
+    playSelect() {
+        this.playEffect(this.select_sound)
+    }
+
+    stopMusic() {
+        audio.stop_music()
+    }
+}

@@ -1,0 +1,379 @@
+import draw,
+       math.{sqrt}
+import fs:f
+import config.{WIDTH, HEIGHT, DOTS_X, DOTS_Y, SPACING, GRID_X, GRID_Y, EDGE_WIDTH,
+               DOT_PICK_RADIUS}
+
+class Renderer {
+    constructor() {
+        this.asset_directory = "./assets/"
+        if !f.exists(this.asset_directory + "game_background.jpg")
+            this.asset_directory = "Dots and Boxs/assets/"
+        this.background_path = this.asset_directory + "game_background.jpg"
+        this.font_path = this.asset_directory + "LilitaOne-Regular.ttf"
+        this.logo_path = this.asset_directory + "dots_and_boxes_logo.png"
+        this.icon_path = this.asset_directory + "dots_and_boxes_icon.png"
+        this.wooden_panel_path =
+            this.asset_directory + "wood_panel.png"
+        this.wooden_button_path = this.asset_directory + "wood_button.png"
+        this.restart_icon_path = this.asset_directory + "restart_icon.png"
+        this.options_icon_path = this.asset_directory + "options_icon.png"
+        this.sound_icon_path = this.asset_directory + "sound_icon.png"
+        this.mute_icon_path = this.asset_directory + "mute_icon.png"
+        this.volume_slider_paths = [
+            this.asset_directory + "volume_slider_0.png",
+            this.asset_directory + "volume_slider_1.png",
+            this.asset_directory + "volume_slider_2.png",
+            this.asset_directory + "volume_slider_3.png",
+            this.asset_directory + "volume_slider_4.png",
+            this.asset_directory + "volume_slider_5.png"
+        ]
+    }
+
+    drawBackground(canvas) {
+        draw.clear(canvas, 0x1A1009)
+        draw.image(canvas, this.background_path, -126, 0,
+                   {w: 932, h: HEIGHT, color: 0xFFFFFF})
+    }
+
+    drawLightText(canvas, x, y, label, size, bold = false) {
+        draw.text(canvas, x + 1, y + 2, label,
+                  {color: 0x351722, font: this.font_path,
+                   size: size, bold: bold,
+                   align: "center"})
+        draw.text(canvas, x, y, label,
+                  {color: 0xFFF0C8, font: this.font_path,
+                   size: size, bold: bold,
+                   align: "center"})
+    }
+
+    drawButton(canvas, mouse, x, y, width, height, label, active = false) {
+        let hovered = mouse.x >= x && mouse.x <= x + width &&
+                      mouse.y >= y && mouse.y <= y + height,
+            tint = 0xFFFFFF,
+            button_y = y
+        if active
+            tint = 0xFFE8B4
+        if hovered {
+            if mouse.left {
+                button_y += 2
+                tint = 0xDCC08A
+            } else {
+                button_y -= 2
+                tint = 0xFFF4D5
+            }
+        }
+        draw.image(canvas, this.wooden_button_path, x, button_y,
+                   {w: width, h: height, color: tint})
+        draw.text(canvas, x + width / 2, button_y + height / 2, label,
+                  {color: 0x351722, font: this.font_path,
+                   size: 14, bold: true,
+                   align: "center"})
+    }
+
+    drawIconButton(canvas, mouse, x, y, icon_path) {
+        let hovered = mouse.x >= x && mouse.x <= x + 42 &&
+                      mouse.y >= y && mouse.y <= y + 42,
+            icon_y = y,
+            tint = 0xFFFFFF
+        if hovered {
+            if mouse.left {
+                icon_y += 2
+                tint = 0xDCC08A
+            } else {
+                icon_y -= 2
+                tint = 0xFFF0C8
+            }
+        }
+        draw.image(canvas, icon_path, x, icon_y,
+                   {w: 42, h: 42, color: tint})
+    }
+
+    renderMenu(canvas, mouse) {
+        this.drawBackground(canvas)
+        draw.image(canvas, this.wooden_panel_path, 60, 150,
+                   {w: 560, h: 412})
+        draw.image(canvas, this.logo_path, 235, 140,
+                   {w: 210, h: 180})
+        this.drawButton(canvas, mouse, 220, 346, 240, 64, "PLAY")
+        this.drawButton(canvas, mouse, 220, 420, 240, 64, "OPTIONS")
+        this.drawButton(canvas, mouse, 220, 494, 240, 64, "QUIT")
+    }
+
+    renderOptions(canvas, game, mouse) {
+        this.drawBackground(canvas)
+        draw.image(canvas, this.wooden_panel_path, 60, 150,
+                   {w: 560, h: 412})
+        this.drawLightText(canvas, 340, 176, "OPTIONS", 24, true)
+        this.drawLightText(canvas, 340, 210, "PLAYER 2", 11, true)
+        let opponent_label = "VS AI"
+        if game.opponent_type == "Human"
+            opponent_label = "VS HUMAN"
+        this.drawButton(canvas, mouse, 220, 219, 240, 54,
+                         opponent_label)
+
+        this.drawLightText(canvas, 340, 281, "BACKGROUND MUSIC", 11, true)
+        let music_label = "MUSIC: ON"
+        if !game.audio.music_enabled
+            music_label = "MUSIC: OFF"
+        this.drawButton(canvas, mouse, 220, 290, 240, 54, music_label,
+                         game.audio.music_enabled)
+
+        this.drawLightText(canvas, 340, 357,
+                             "MUSIC VOLUME: " +
+                             round(game.audio.music_setting * 100) + "%",
+                             11, true)
+        let music_slider_step = round(game.audio.music_setting * 5)
+        draw.image(canvas, this.volume_slider_paths[music_slider_step], 185, 366,
+                   {w: 310, h: 40})
+
+        this.drawLightText(canvas, 340, 412,
+                             "SOUND EFFECTS: " +
+                             round(game.audio.effects_volume * 100) + "%",
+                             11, true)
+        let effects_slider_step = round(game.audio.effects_volume * 5)
+        draw.image(canvas, this.volume_slider_paths[effects_slider_step], 185, 421,
+                   {w: 310, h: 40})
+
+        this.drawButton(canvas, mouse, 220, 468, 240, 54, "BACK")
+        this.drawLightText(canvas, 340, 542, "ESC TO RETURN", 9)
+    }
+
+    renderReturnDialog(canvas, mouse) {
+        draw.image(canvas, this.wooden_panel_path, 130, 190,
+                   {w: 420, h: 320})
+        this.drawLightText(canvas, WIDTH / 2, 252,
+                             "RETURN TO MAIN MENU?", 18, true)
+        this.drawLightText(canvas, WIDTH / 2, 298,
+                             "YOUR CURRENT GAME WILL BE LOST", 10, true)
+        this.drawButton(canvas, mouse, 175, 358, 145, 50, "MAIN MENU")
+        this.drawButton(canvas, mouse, 360, 358, 145, 50, "CANCEL")
+    }
+
+    drawThickLine(canvas, x1, y1, x2, y2, color, width) {
+        let dx = x2 - x1,
+            dy = y2 - y1,
+            length = sqrt(dx * dx + dy * dy)
+        if length == 0 {
+            draw.circle(canvas, x1, y1, width / 2, color, true)
+            return
+        }
+
+        let normal_x = -dy / length,
+            normal_y = dx / length,
+            half_width = width / 2
+        draw.polygon(canvas, [
+            [x1 + normal_x * half_width, y1 + normal_y * half_width],
+            [x2 + normal_x * half_width, y2 + normal_y * half_width],
+            [x2 - normal_x * half_width, y2 - normal_y * half_width],
+            [x1 - normal_x * half_width, y1 - normal_y * half_width]
+        ], color, true)
+        draw.circle(canvas, x1, y1, half_width, color, true)
+        draw.circle(canvas, x2, y2, half_width, color, true)
+    }
+
+    render(canvas, game, mouse, hovered_dot) {
+        if game.screen == "menu" {
+            this.renderMenu(canvas, mouse)
+            return
+        }
+        if game.screen == "options" {
+            this.renderOptions(canvas, game, mouse)
+            return
+        }
+
+        let board = game.board
+
+        this.drawBackground(canvas)
+
+        this.drawLightText(canvas, WIDTH / 2, 27, "DOTS AND BOXES",
+                             20, true)
+        this.drawLightText(canvas, WIDTH / 2, 50,
+                             "CLAIM THE MOST SQUARES", 10)
+        this.drawIconButton(canvas, mouse, 520, 15, this.options_icon_path)
+        this.drawIconButton(canvas, mouse, 568, 15, this.restart_icon_path)
+        let sound_icon_path = this.sound_icon_path
+        if !game.audio.music_enabled
+            sound_icon_path = this.mute_icon_path
+        this.drawIconButton(canvas, mouse, 616, 15, sound_icon_path)
+        draw.image(canvas, this.wooden_button_path, 91, 70,
+                   {w: 180, h: 46})
+        draw.image(canvas, this.wooden_button_path, 409, 70,
+                   {w: 180, h: 46})
+        draw.text(canvas, 181, 93, "YOU   " + board.scores[0],
+                  {color: 0x216FA5, font: this.font_path,
+                   size: 14, bold: true,
+                   align: "center"})
+        let second_player_label = "AI"
+        if game.opponent_type == "Human"
+            second_player_label = "P2"
+        draw.text(canvas, 499, 93,
+                  second_player_label + "   " + board.scores[1],
+                  {color: 0xB33B32, font: this.font_path,
+                   size: 14, bold: true,
+                   align: "center"})
+
+        if game.game_over {
+            let result_text = "IT'S A DRAW!"
+            if board.scores[0] > board.scores[1]
+                result_text = "YOU WIN!"
+            elif board.scores[1] > board.scores[0] {
+                result_text = "AI WINS!"
+                if game.opponent_type == "Human"
+                    result_text = "PLAYER 2 WINS!"
+            }
+            this.drawLightText(canvas, WIDTH / 2, 132, result_text, 14, true)
+        } else {
+            let turn_text = "YOUR TURN"
+            if game.player == 2 {
+                turn_text = "AI'S TURN"
+                if game.opponent_type == "Human"
+                    turn_text = "PLAYER 2'S TURN"
+            }
+            this.drawLightText(canvas, WIDTH / 2, 132, turn_text, 14, true)
+        }
+
+        for row_index in 0..DOTS_Y - 1 {
+            for column_index in 0..DOTS_X - 1 {
+                let box_owner = board.boxes[row_index][column_index]
+                if box_owner != 0 {
+                    let box_color = 0x8CC4E8,
+                        progress = board.box_animation[row_index][column_index],
+                        eased = progress * progress * (3 - 2 * progress),
+                        box_size = (SPACING - 12) * eased,
+                        box_x = GRID_X + column_index * SPACING + SPACING / 2 -
+                                box_size / 2,
+                        box_y = GRID_Y + row_index * SPACING + SPACING / 2 -
+                                box_size / 2
+                    if box_owner == 2
+                        box_color = 0xEF9992
+                    if box_size > 0
+                        draw.rect(canvas, box_x, box_y, box_size, box_size,
+                                  box_color, true)
+
+                    let owner_color = 0x164F79
+                    if box_owner == 2
+                        owner_color = 0x7C2327
+                    if progress > 0.8
+                        draw.text(canvas,
+                                  GRID_X + column_index * SPACING + SPACING / 2,
+                                  GRID_Y + row_index * SPACING + SPACING / 2,
+                                  "" + box_owner,
+                                  {color: owner_color, font: this.font_path,
+                                   size: 14, bold: true,
+                                   align: "center"})
+                }
+            }
+        }
+
+        for row_index in 0..DOTS_Y {
+            for column_index in 0..DOTS_X - 1 {
+                let owner = board.horizontal[row_index][column_index],
+                    start_x = GRID_X + column_index * SPACING,
+                    center_y = GRID_Y + row_index * SPACING
+                draw.rect(canvas, start_x, center_y - 3, SPACING, 6,
+                          0x8B6747, true)
+                if owner != 0 {
+                    let edge_color = 0x3498DB,
+                        progress = board.horizontal_animation[row_index][column_index],
+                        eased = progress * progress * (3 - 2 * progress),
+                        line_length = SPACING * eased
+                    if owner == 2
+                        edge_color = 0xE74C3C
+                    if line_length > 0
+                        draw.rect(canvas,
+                                  start_x + (SPACING - line_length) / 2,
+                                  center_y - EDGE_WIDTH / 2,
+                                  line_length, EDGE_WIDTH, edge_color, true)
+                }
+            }
+        }
+
+        for row_index in 0..DOTS_Y - 1 {
+            for column_index in 0..DOTS_X {
+                let owner = board.vertical[row_index][column_index],
+                    center_x = GRID_X + column_index * SPACING,
+                    start_y = GRID_Y + row_index * SPACING
+                draw.rect(canvas, center_x - 3, start_y, 6, SPACING,
+                          0x8B6747, true)
+                if owner != 0 {
+                    let edge_color = 0x3498DB,
+                        progress = board.vertical_animation[row_index][column_index],
+                        eased = progress * progress * (3 - 2 * progress),
+                        line_length = SPACING * eased
+                    if owner == 2
+                        edge_color = 0xE74C3C
+                    if line_length > 0
+                        draw.rect(canvas, center_x - EDGE_WIDTH / 2,
+                                  start_y + (SPACING - line_length) / 2,
+                                  EDGE_WIDTH, line_length, edge_color, true)
+                }
+            }
+        }
+
+        if game.dragging {
+            let line_start_x = GRID_X + game.drag_column * SPACING,
+                line_start_y = GRID_Y + game.drag_row * SPACING,
+                line_end_x = mouse.x,
+                line_end_y = mouse.y
+            if hovered_dot[2] <= DOT_PICK_RADIUS * DOT_PICK_RADIUS &&
+               board.canConnect(game.drag_row, game.drag_column,
+                                hovered_dot[0], hovered_dot[1]) {
+                line_end_x = GRID_X + hovered_dot[1] * SPACING
+                line_end_y = GRID_Y + hovered_dot[0] * SPACING
+            }
+            this.drawThickLine(canvas, line_start_x + 1, line_start_y + 2,
+                                 line_end_x + 1, line_end_y + 2,
+                                 0x351722, 11)
+            let preview_color = 0x54B3ED
+            if game.player == 2
+                preview_color = 0xF06458
+            this.drawThickLine(canvas, line_start_x, line_start_y,
+                                 line_end_x, line_end_y, preview_color, 7)
+        }
+
+        for row_index in 0..DOTS_Y {
+            for column_index in 0..DOTS_X {
+                let dot_x = GRID_X + column_index * SPACING,
+                    dot_y = GRID_Y + row_index * SPACING,
+                    hover = board.dot_hover[row_index][column_index],
+                    radius = 8 + hover * 5
+                if hover > 0 {
+                    let halo_color = 0x4D9DD1
+                    if game.player == 2
+                        halo_color = 0xD9564F
+                    draw.circle(canvas, dot_x, dot_y, radius + 5,
+                                halo_color, true)
+                }
+                draw.circle(canvas, dot_x + 1, dot_y + 2, radius + 1,
+                            0x351722, true)
+                draw.circle(canvas, dot_x, dot_y, radius,
+                            0x6B392F, true)
+                draw.circle(canvas, dot_x, dot_y, radius - 2,
+                            0xF5D58B, true)
+                draw.circle(canvas, dot_x - 2, dot_y - 2, 2,
+                            0xFFF4D0, true)
+            }
+        }
+
+        for particle in game.particles {
+            let radius = 2 + particle.life * 3
+            draw.circle(canvas, particle.x, particle.y, radius,
+                        particle.color, true)
+        }
+
+        draw.image(canvas, this.volume_slider_paths[0], 150, 676,
+                   {w: 380, h: 40})
+        if game.game_over
+            this.drawLightText(canvas, WIDTH / 2, 696,
+                                 "GAME OVER   |   OPTIONS / RESTART / MUTE SFX",
+                                 9, true)
+        else
+            this.drawLightText(canvas, WIDTH / 2, 696,
+                                 "DRAG TO CONNECT   |   OPTIONS / RESTART / MUTE SFX",
+                                 9, true)
+
+        if game.confirm_return_to_menu
+            this.renderReturnDialog(canvas, mouse)
+    }
+}
